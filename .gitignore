@@ -28,6 +28,11 @@
 # debug
 npm-debug.log*
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
