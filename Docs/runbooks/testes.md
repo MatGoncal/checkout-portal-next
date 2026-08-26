@@ -12,6 +12,7 @@ npm run dev
 
 ```bash
 npm run lint
+npm test          # Vitest — lib/ and route handlers (node environment)
 npm run build
 npx playwright install chromium
 # On Linux, system libs may be required once (needs sudo):
@@ -21,6 +22,9 @@ npm run test:e2e
 
 CI (`.github/workflows/ci.yml`) installs Chromium with OS deps via `--with-deps`.
 Local WSL without those libs will fail browser launch; use CI or install deps.
+
+Vitest (`vitest.config.mts`) covers server-side logic in `tests/*.test.ts` and
+needs no browser; Playwright stays responsible for the DOM.
 
 ## Manual webhook demo
 
