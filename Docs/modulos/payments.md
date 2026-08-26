@@ -1,11 +1,17 @@
-# payments
+# Module — payments
 
-PIX cash-in list and detail via AcmePay v1.
+List + create + get payment status via contract paths.
 
-- `GET /v1/payments` → paginated list (mock extension for dashboard/checkout)
-- `POST /v1/payments` → `PENDING` + QR + copia-e-cola
-- `GET /v1/payments/{id}` → status poll target
-- Amounts: integer minor units; currency `BRL` in v1
-- Client: `lib/api.ts`; hooks: `hooks/useCheckout.ts`
-- Mock: `app/api/v1/payments/*`, store in `lib/mock-store.ts`
-- Spec: `Docs/specs/fase-0-bootstrap.md`
+## Routes / API
+
+- `GET /api/v1/payments` — paginated list (mock convenience)
+- `POST /api/v1/payments` — create PENDING PIX
+- `GET /api/v1/payments/{id}` — status poll target
+- `POST /api/v1/payments/{id}/splits` — settlement lines
+- `POST /api/v1/webhooks/payment` — HMAC provider events
+
+## Notes
+
+- Amounts are integer minor units.
+- Mock auto-PAID is off unless `ACMEPAY_MOCK_AUTO_PAID=true`.
+- Prefer `/simulator` for live status demos.
