@@ -59,7 +59,8 @@ export interface WebhookPaymentRequest {
   type: WebhookEventType;
   payment_id: string;
   occurred_at: string;
-  data?: {
+  /** Required by the contract; `payment.paid` must carry `amount` + `currency`. */
+  data: {
     provider_tx_id?: string;
     amount?: number;
     currency?: string;

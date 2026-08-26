@@ -22,6 +22,16 @@ export function SimulatorView() {
   const paymentQuery = usePayment(paymentId || null, { pollWhilePending: true });
   const simulate = useSimulateWebhook();
 
+  // A settlement event must state what it settled, and the API refuses to
+  // credit a figure that differs from the charge it stored.
+  function settlementData(event_id: string) {
+    return {
+      provider_tx_id: `pix_tx_${event_id.slice(0, 12)}`,
+      amount: paymentQuery.data?.amount,
+      currency: paymentQuery.data?.currency ?? 'BRL',
+    };
+  }
+
   async function fireWebhook() {
     setLastResult(null);
     if (!paymentId) return;
@@ -34,11 +44,7 @@ export function SimulatorView() {
         type: eventType,
         payment_id: paymentId,
         occurred_at: new Date().toISOString(),
-        data: {
-          provider_tx_id: `pix_tx_${event_id.slice(0, 12)}`,
-          amount: paymentQuery.data?.amount,
-          currency: paymentQuery.data?.currency ?? 'BRL',
-        },
+        data: settlementData(event_id),
       });
       setLastResult(
         result.duplicate
@@ -55,20 +61,17 @@ export function SimulatorView() {
     if (!paymentId) return;
     const event_id = 'evt_replay_fixed';
     try {
-      await simulate.mutateAsync({
+      const replay = {
         event_id,
         provider: 'fake_pix',
-        type: 'payment.paid',
+        type: 'payment.paid' as const,
         payment_id: paymentId,
         occurred_at: new Date().toISOString(),
-      });
-      const second = await simulate.mutateAsync({
-        event_id,
-        provider: 'fake_pix',
-        type: 'payment.paid',
-        payment_id: paymentId,
-        occurred_at: new Date().toISOString(),
-      });
+        data: settlementData(event_id),
+      };
+
+      await simulate.mutateAsync(replay);
+      const second = await simulate.mutateAsync(replay);
       setLastResult(
         second.duplicate
           ? `Replay OK — duplicate:true code ${second.error?.code ?? 1042}`
