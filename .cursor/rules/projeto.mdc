@@ -1,0 +1,18 @@
+---
+description: AcmePay checkout-portal-next Next.js conventions
+globs:
+  - "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+# checkout-portal-next rules
+
+- Domain: AcmePay (fictional). Never import StarsPay code or real PSP credentials.
+- Money: integer minor units only. No float/double for amounts in API payloads.
+- Shared contract: `Docs/specs/API_CONTRACT.md`, codes in `Docs/specs/error-codes.md`.
+- Data fetching: TanStack Query via `hooks/*`; HTTP via `lib/api.ts`.
+- New checkout/payment features: follow `.cursor/skills/next-query-hook/SKILL.md`.
+- Domain glossary: personal skill `payments-domain`.
+- Spec first, then implementation, then update the spec checkboxes.
+- Prefer Server Components for lists; client components for forms and polling.
+- API mock routes under `app/api/v1/` must match shared contract shapes.
