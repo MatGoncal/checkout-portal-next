@@ -2,8 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiRequest } from '@/lib/api';
-import { signWebhookBody } from '@/lib/webhook-sign';
+import { apiRequest, appRequest } from '@/lib/api';
 import type {
   CreatePaymentPayload,
   CreateSplitsPayload,
@@ -68,17 +67,12 @@ export function useUpsertSplits(paymentId: string) {
 export function useSimulateWebhook() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (event: WebhookPaymentRequest) => {
-      const body = JSON.stringify(event);
-      const signature = await signWebhookBody(body);
-      return apiRequest<WebhookPaymentResponse>('/webhooks/payment', {
+    // The event is unsigned on the wire: only the server knows WEBHOOK_SECRET.
+    mutationFn: (event: WebhookPaymentRequest) =>
+      appRequest<WebhookPaymentResponse>('/api/simulator/fire', {
         method: 'POST',
-        body,
-        headers: {
-          'X-AcmePay-Signature': signature,
-        },
-      });
-    },
+        body: JSON.stringify(event),
+      }),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: [PAYMENT_QUERY_KEY, variables.payment_id] });
       void queryClient.invalidateQueries({ queryKey: [SPLITS_QUERY_KEY, variables.payment_id] });

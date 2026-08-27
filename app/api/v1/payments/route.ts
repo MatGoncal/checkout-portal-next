@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { authOk, createPayment, listPayments } from '@/lib/mock-store';
+import { createPayment, listPayments } from '@/lib/mock-store';
+import { upstreamBaseUrl } from '@/lib/server-config';
+import { forwardToUpstream } from '@/lib/upstream';
 import type { CreatePaymentPayload } from '@/types/api';
 
 export async function GET(request: NextRequest) {
-  if (!authOk(request.headers.get('authorization'), request.headers.get('x-api-key'))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream('/payments', {
+      method: 'GET',
+      search: request.nextUrl.search,
+    });
   }
 
   return NextResponse.json(listPayments(request.nextUrl.searchParams));
 }
 
 export async function POST(request: NextRequest) {
-  if (!authOk(request.headers.get('authorization'), request.headers.get('x-api-key'))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  const rawBody = await request.text();
+
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream('/payments', { method: 'POST', body: rawBody });
   }
 
   let body: CreatePaymentPayload;
   try {
-    body = (await request.json()) as CreatePaymentPayload;
+    body = JSON.parse(rawBody) as CreatePaymentPayload;
   } catch {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }

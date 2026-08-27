@@ -1,7 +1,11 @@
 import type { ApiErrorEnvelope } from '@/types/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? '/api/v1';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? 'demo-partner-key';
+/**
+ * The browser always talks to the same-origin BFF under `app/api/v1/*`, which
+ * holds the partner credential. Nothing in this file may read the environment
+ * or attach a credential header — it ships inside the client bundle.
+ */
+const API_BASE = '/api/v1';
 
 export class ApiClientError extends Error {
   readonly status: number;
@@ -16,16 +20,12 @@ export class ApiClientError extends Error {
 }
 
 function resolvePath(path: string): string {
-  const base = API_BASE.replace(/\/$/, '');
   const suffix = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${suffix}`;
+  return `${API_BASE}${suffix}`;
 }
 
-function defaultHeaders(): HeadersInit {
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${API_KEY}`,
-  };
+function jsonHeaders(): HeadersInit {
+  return { 'Content-Type': 'application/json' };
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -52,15 +52,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return body as T;
 }
 
-/** Client-side and relative fetch (browser). */
-export async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const response = await fetch(resolvePath(path), {
+async function request<T>(url: string, options: RequestInit): Promise<T> {
+  const response = await fetch(url, {
     ...options,
     headers: {
-      ...defaultHeaders(),
+      ...jsonHeaders(),
       ...(options.headers ?? {}),
     },
   });
@@ -68,21 +64,22 @@ export async function apiRequest<T>(
   return parseResponse<T>(response);
 }
 
+/** Calls the BFF's `/api/v1` surface from the browser. */
+export function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return request<T>(resolvePath(path), options);
+}
+
+/** Calls a portal-only route handler such as `/api/simulator/fire`. */
+export function appRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return request<T>(path, options);
+}
+
 /** Server Component fetch with absolute origin. */
-export async function apiRequestServer<T>(
+export function apiRequestServer<T>(
   path: string,
   origin: string,
   options: RequestInit = {},
 ): Promise<T> {
   const url = `${origin.replace(/\/$/, '')}${resolvePath(path)}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...defaultHeaders(),
-      ...(options.headers ?? {}),
-    },
-    cache: 'no-store',
-  });
-
-  return parseResponse<T>(response);
+  return request<T>(url, { ...options, cache: 'no-store' });
 }

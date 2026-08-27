@@ -19,17 +19,20 @@ Domain: personal skill `payments-domain`. Contract: `Docs/specs/API_CONTRACT.md`
 | Lint | ESLint (flat config) + `eslint-config-next` |
 | E2E | Playwright |
 | Deploy | Vercel (`vercel.json`) |
-| API | Mock handlers in `app/api/v1/*` (swap to Nest via env) |
+| API | BFF handlers in `app/api/v1/*` (in-app mock or Nest via env) |
 
 ### Environment rule
 
-Default dev uses **in-app mock API** at `/api/v1`. Point to external Nest:
+The browser only ever calls the same-origin BFF at `/api/v1`, with no credential.
+`API_KEY` and `WEBHOOK_SECRET` are server-side variables — a `NEXT_PUBLIC_` twin of
+either is a security bug, not a shortcut. Default dev answers from the in-app mock;
+point the BFF at external Nest:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/v1
+UPSTREAM_API_URL=http://localhost:3001/v1
 ```
 
-See `Docs/runbooks/testes.md`.
+See `Docs/specs/fase-6-bff-credenciais.md` and `Docs/runbooks/testes.md`.
 
 ## Module map
 
@@ -50,11 +53,15 @@ See `Docs/runbooks/testes.md`.
 | `app/checkout/expired/page.tsx` | Expired QR |
 | `app/splits/page.tsx` | Split visualization |
 | `app/simulator/page.tsx` | Webhook simulator |
-| `app/api/v1/payments/route.ts` | Mock `GET`/`POST /v1/payments` |
-| `app/api/v1/payments/[id]/route.ts` | Mock `GET /v1/payments/{id}` |
-| `app/api/v1/payments/[id]/splits/route.ts` | Mock splits |
-| `app/api/v1/webhooks/payment/route.ts` | Mock HMAC webhook |
-| `lib/api.ts` | HTTP client (Bearer API key) |
+| `app/api/v1/payments/route.ts` | BFF `GET`/`POST /v1/payments` |
+| `app/api/v1/payments/[id]/route.ts` | BFF `GET /v1/payments/{id}` |
+| `app/api/v1/payments/[id]/splits/route.ts` | BFF splits |
+| `app/api/v1/webhooks/payment/route.ts` | HMAC webhook intake |
+| `app/api/simulator/fire/route.ts` | Signs the simulated event server-side |
+| `lib/api.ts` | Browser client — same-origin, no credential |
+| `lib/server-config.ts` | `API_KEY` / `WEBHOOK_SECRET` / `UPSTREAM_API_URL` |
+| `lib/upstream.ts` | Proxy to the real API + response relay |
+| `lib/webhook-signature.ts` | HMAC sign / timing-safe verify |
 | `lib/money.ts` | Minor-unit formatting (no float money) |
 | `hooks/useCheckout.ts` | TanStack Query mutations + polling |
 | `e2e/checkout.spec.ts` | Playwright happy path |
@@ -95,10 +102,12 @@ See `Docs/runbooks/testes.md`.
 | 3 | Split visualization | `Docs/specs/fase-3-splits.md` |
 | 4 | Webhook simulator | `Docs/specs/fase-4-webhook-simulator.md` |
 | 5 | Playwright + Vercel | `Docs/specs/fase-5-playwright-vercel.md` |
+| 6 | BFF + credenciais server-side | `Docs/specs/fase-6-bff-credenciais.md` |
 
 ## Do NOT
 
 - Use `float`/`number` math for money — integer minor units only
+- Expose a credential through `NEXT_PUBLIC_*` or sign a webhook in the browser
 - Call a real PSP — mock or portfolio Nest/Laravel only
 - Copy StarsPay production code or secrets
 - Invent error codes outside `error-codes.md`
@@ -121,5 +130,6 @@ See `Docs/runbooks/testes.md`.
 - [ ] `npm run build` green
 - [ ] E2E (`npm run test:e2e`) green when UI flow changed
 - [ ] No floats for money
+- [ ] `bash scripts/check-client-bundle.sh` green after build (no credential shipped)
 - [ ] `API_CONTRACT.md` / `error-codes.md` kept in sync with sibling repos
 - [ ] Commits small and English

@@ -9,13 +9,15 @@ signature and idempotency (`1042` on replay).
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
+| POST | `/api/simulator/fire` | `ENABLE_SIMULATOR` | Unsigned event from the browser |
 | POST | `/v1/webhooks/payment` | HMAC | Provider event |
 
 ## Fluxo
 
 1. Operator opens `/simulator` and picks a PENDING payment.
 2. Chooses event type: `payment.paid` | `payment.expired` | `payment.failed`.
-3. Client signs body with `NEXT_PUBLIC_WEBHOOK_SECRET` (demo only) or server helper.
+3. Browser posts the event to `/api/simulator/fire`, which signs it server-side
+   with `WEBHOOK_SECRET` (see `fase-6-bff-credenciais.md`).
 4. Mock verifies `X-AcmePay-Signature`, claims `(provider, event_id)`, updates payment.
 5. Polling checkout / list updates live.
 

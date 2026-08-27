@@ -14,6 +14,7 @@ npm run dev
 npm run lint
 npm test          # Vitest — lib/ and route handlers (node environment)
 npm run build
+bash scripts/check-client-bundle.sh   # fails if a credential reached .next/static
 npx playwright install chromium
 # On Linux, system libs may be required once (needs sudo):
 # npx playwright install-deps chromium
@@ -33,10 +34,14 @@ needs no browser; Playwright stays responsible for the DOM.
 3. Fire `payment.paid` — checkout poller / success screen updates.
 4. Click **Demo duplicate (1042)** to show idempotency.
 
-## External Nest
+The browser posts the event unsigned; `/api/simulator/fire` signs it with
+`WEBHOOK_SECRET` before delivering. Requires `ENABLE_SIMULATOR=true`.
+
+## External Nest behind the BFF
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/v1 npm run dev
+UPSTREAM_API_URL=http://localhost:3001/v1 API_KEY=demo-partner-key npm run dev
 ```
 
-Ensure Nest uses the same API key and webhook secret.
+Ensure Nest accepts the same API key and webhook secret. The browser keeps calling
+`/api/v1` — only the BFF knows where the real API lives.

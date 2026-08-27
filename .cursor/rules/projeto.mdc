@@ -15,4 +15,6 @@ alwaysApply: true
 - Domain glossary: personal skill `payments-domain`.
 - Spec first, then implementation, then update the spec checkboxes.
 - Prefer Server Components for lists; client components for forms and polling.
-- API mock routes under `app/api/v1/` must match shared contract shapes.
+- BFF routes under `app/api/v1/` must match shared contract shapes.
+- Secrets stay server-side: read them through `lib/server-config.ts` inside route
+  handlers. Never `NEXT_PUBLIC_` a credential, never sign a webhook in the browser.

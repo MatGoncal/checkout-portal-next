@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 
 import { defaultSplits } from '@/lib/splits';
 import type {
@@ -10,8 +10,6 @@ import type {
   WebhookPaymentResponse,
 } from '@/types/api';
 
-const DEMO_API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? 'demo-partner-key';
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? process.env.NEXT_PUBLIC_WEBHOOK_SECRET ?? 'dev-webhook-secret';
 const AUTO_PAID = process.env.ACMEPAY_MOCK_AUTO_PAID === 'true';
 
 type PaymentRecord = Payment & { description?: string | null };
@@ -55,14 +53,16 @@ function webhookKey(provider: string, eventId: string): string {
   return `${provider}::${eventId}`;
 }
 
-function scheduleExpiry(store: MockStore, id: string, expiresInSeconds: number): void {
-  if (expiresInSeconds <= 0) return;
-  setTimeout(() => {
-    const current = store.payments[id];
-    if (current?.status === 'PENDING') {
-      current.status = 'EXPIRED';
-    }
-  }, expiresInSeconds * 1000);
+function maybeExpirePayment(payment: PaymentRecord): PaymentRecord {
+  if (
+    payment.status === 'PENDING' &&
+    payment.expires_at &&
+    new Date(payment.expires_at).getTime() <= Date.now()
+  ) {
+    payment.status = 'EXPIRED';
+  }
+
+  return payment;
 }
 
 function seedPayments(store: MockStore): void {
@@ -109,22 +109,6 @@ export function ensureMockStore(): MockStore {
   return store;
 }
 
-export function authOk(authHeader: string | null, apiKeyHeader: string | null): boolean {
-  const bearer = authHeader?.replace(/^Bearer\s+/i, '');
-  const key = bearer || apiKeyHeader;
-  return key === DEMO_API_KEY;
-}
-
-export function verifyWebhookSignature(rawBody: string, signatureHeader: string | null): boolean {
-  if (!signatureHeader) return false;
-  const expected = `sha256=${createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex')}`;
-  return signatureHeader === expected;
-}
-
-export function signWebhookBody(rawBody: string, secret = WEBHOOK_SECRET): string {
-  return `sha256=${createHmac('sha256', secret).update(rawBody).digest('hex')}`;
-}
-
 export function listPayments(searchParams: URLSearchParams): PaymentsListResponse {
   const store = ensureMockStore();
   const status = searchParams.get('status');
@@ -132,7 +116,9 @@ export function listPayments(searchParams: URLSearchParams): PaymentsListRespons
   const page = Math.max(1, Number(searchParams.get('page') ?? 1));
   const perPage = Math.min(50, Math.max(1, Number(searchParams.get('per_page') ?? 10)));
 
-  let items = Object.values(store.payments).sort(
+  let items = Object.values(store.payments)
+    .map((payment) => maybeExpirePayment(payment))
+    .sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
@@ -187,7 +173,6 @@ export function createPayment(input: CreatePaymentInput): PaymentRecord {
   };
 
   store.payments[id] = payment;
-  scheduleExpiry(store, id, expiresIn);
 
   if (AUTO_PAID) {
     setTimeout(() => {
@@ -205,7 +190,12 @@ export function createPayment(input: CreatePaymentInput): PaymentRecord {
 
 export function getPayment(id: string): PaymentRecord | null {
   const store = ensureMockStore();
-  return store.payments[id] ?? null;
+  const payment = store.payments[id];
+  if (!payment) {
+    return null;
+  }
+
+  return maybeExpirePayment(payment);
 }
 
 export function setPaymentSplits(

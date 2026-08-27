@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import {
-  getPayment,
-  processWebhookEvent,
-  verifyWebhookSignature,
-} from '@/lib/mock-store';
+import { getPayment, processWebhookEvent } from '@/lib/mock-store';
+import { upstreamBaseUrl } from '@/lib/server-config';
+import { forwardToUpstream } from '@/lib/upstream';
+import { verifyWebhookSignature } from '@/lib/webhook-signature';
 import type { WebhookPaymentRequest } from '@/types/api';
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
   const signature = request.headers.get('x-acmepay-signature');
+
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream('/webhooks/payment', {
+      method: 'POST',
+      body: rawBody,
+      headers: signature ? { 'x-acmepay-signature': signature } : {},
+      withPartnerKey: false,
+    });
+  }
 
   if (!verifyWebhookSignature(rawBody, signature)) {
     return NextResponse.json({ message: 'Invalid webhook signature' }, { status: 401 });

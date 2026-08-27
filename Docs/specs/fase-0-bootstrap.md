@@ -26,7 +26,10 @@ with QR display and status polling.
 
 ## Variáveis de ambiente
 
+> Superseded by `fase-6-bff-credenciais.md`: the public API base and the public
+> partner key were replaced by `UPSTREAM_API_URL` and a server-side `API_KEY`.
+
 | Var | Default | Descrição |
 |-----|---------|-----------|
-| `NEXT_PUBLIC_API_BASE_URL` | `/api/v1` | Mock or Nest base |
-| `NEXT_PUBLIC_API_KEY` | `demo-partner-key` | Partner Bearer token |
+| `UPSTREAM_API_URL` | _(empty)_ | Real API behind the BFF; empty uses the mock |
+| `API_KEY` | `demo-partner-key` | Partner Bearer token, server-side only |
