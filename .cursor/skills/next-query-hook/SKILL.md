@@ -15,6 +15,8 @@ disable-model-invocation: true
 2. Update `Docs/modulos/<module>.md` if behavior changes.
 3. Add types to `types/api.ts` matching `API_CONTRACT.md`.
 4. Add HTTP helpers in `lib/api.ts` (never inline fetch in components).
+   `lib/api.ts` ships to the browser: no `process.env`, no credential header.
+   Anything secret belongs in the route handler via `lib/server-config.ts`.
 5. Add hook in `hooks/use<Feature>.ts`:
    - `useMutation` for creates
    - `useQuery` with `refetchInterval` for `PENDING` polling (stop on terminal status)
@@ -50,6 +52,8 @@ refetchInterval: (query) =>
 
 ```bash
 npm run lint
+npm test
 npm run build
+bash scripts/check-client-bundle.sh
 # Manual: Docs/runbooks/testes.md
 ```

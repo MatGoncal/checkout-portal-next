@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { authOk, getPaymentSplits, setPaymentSplits } from '@/lib/mock-store';
+import { getPaymentSplits, setPaymentSplits } from '@/lib/mock-store';
+import { upstreamBaseUrl } from '@/lib/server-config';
+import { forwardToUpstream } from '@/lib/upstream';
 import type { CreateSplitsPayload } from '@/types/api';
 
 interface RouteContext {
@@ -8,11 +10,12 @@ interface RouteContext {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
-  if (!authOk(request.headers.get('authorization'), request.headers.get('x-api-key'))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  const { id } = await context.params;
+
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream(`/payments/${encodeURIComponent(id)}/splits`, { method: 'GET' });
   }
 
-  const { id } = await context.params;
   const splits = getPaymentSplits(id);
   if (!splits) {
     return NextResponse.json({ message: 'Payment not found' }, { status: 404 });
@@ -22,15 +25,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  if (!authOk(request.headers.get('authorization'), request.headers.get('x-api-key'))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-
   const { id } = await context.params;
+  const rawBody = await request.text();
+
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream(`/payments/${encodeURIComponent(id)}/splits`, {
+      method: 'POST',
+      body: rawBody,
+    });
+  }
 
   let body: CreateSplitsPayload;
   try {
-    body = (await request.json()) as CreateSplitsPayload;
+    body = JSON.parse(rawBody) as CreateSplitsPayload;
   } catch {
     return NextResponse.json({ message: 'Invalid JSON body' }, { status: 400 });
   }

@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { authOk, getPayment } from '@/lib/mock-store';
+import { getPayment } from '@/lib/mock-store';
+import { upstreamBaseUrl } from '@/lib/server-config';
+import { forwardToUpstream } from '@/lib/upstream';
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  if (!authOk(request.headers.get('authorization'), request.headers.get('x-api-key'))) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  const { id } = await context.params;
+
+  if (upstreamBaseUrl()) {
+    return forwardToUpstream(`/payments/${encodeURIComponent(id)}`, { method: 'GET' });
   }
 
-  const { id } = await context.params;
   const payment = getPayment(id);
 
   if (!payment) {

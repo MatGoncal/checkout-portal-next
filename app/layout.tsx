@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: 'PIX checkout portal for the AcmePay portfolio',
 };
 
+const simulatorEnabled = process.env.ENABLE_SIMULATOR === 'true';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,7 +33,7 @@ export default function RootLayout({
                 <Link href="/">Payments</Link>
                 <Link href="/checkout">Checkout</Link>
                 <Link href="/splits">Splits</Link>
-                <Link href="/simulator">Simulator</Link>
+                {simulatorEnabled ? <Link href="/simulator">Simulator</Link> : null}
               </nav>
             </header>
             {children}

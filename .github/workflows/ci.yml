@@ -18,6 +18,21 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+        env:
+          API_KEY: demo-partner-key
+          WEBHOOK_SECRET: dev-webhook-secret
+      - name: Verify the client bundle carries no server credential
+        run: bash scripts/check-client-bundle.sh
+        env:
+          API_KEY: demo-partner-key
+          WEBHOOK_SECRET: dev-webhook-secret
+
+  contract-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify API contract files match canonical baseline
+        run: bash scripts/check-contract-drift.sh
 
   e2e:
     runs-on: ubuntu-latest
@@ -33,3 +48,4 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: true
+          ENABLE_SIMULATOR: 'true'
