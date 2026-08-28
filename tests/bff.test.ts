@@ -107,6 +107,34 @@ describe('BFF route handlers', () => {
     expect(payment.status).toBe('PENDING');
     expect(payment.amount).toBe(1500);
   });
+
+  it('forwards Idempotency-Key from the browser POST to the upstream API', async () => {
+    vi.stubEnv('UPSTREAM_API_URL', 'https://upstream.test/v1');
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        id: 'pay_upstream',
+        status: 'PENDING',
+        amount: 1500,
+        currency: 'BRL',
+        created_at: '2026-01-01T00:00:00Z',
+      }, 201),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await createPaymentRoute(
+      browserRequest('http://localhost:3000/api/v1/payments', {
+        method: 'POST',
+        body: JSON.stringify({ amount: 1500, currency: 'BRL', external_id: 'order-7' }),
+        headers: { 'Idempotency-Key': 'pay:order-7' },
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(new Headers(init.headers).get('idempotency-key')).toBe('pay:order-7');
+    expect(new Headers(init.headers).get('authorization')).toBe(`Bearer ${API_KEY}`);
+  });
 });
 
 describe('simulator fire route', () => {

@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text();
 
   if (upstreamBaseUrl()) {
-    return forwardToUpstream('/payments', { method: 'POST', body: rawBody });
+    const headers: Record<string, string> = {};
+    const idempotencyKey = request.headers.get('idempotency-key');
+    if (idempotencyKey) {
+      headers['Idempotency-Key'] = idempotencyKey;
+    }
+    return forwardToUpstream('/payments', { method: 'POST', body: rawBody, headers });
   }
 
   let body: CreatePaymentPayload;
