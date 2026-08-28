@@ -17,3 +17,4 @@ List + create + get payment status via contract paths.
 - Amounts are integer minor units.
 - Mock auto-PAID is off unless `ACMEPAY_MOCK_AUTO_PAID=true`.
 - Prefer `/simulator` for live status demos.
+- Create sends `Idempotency-Key`; the BFF forwards it to Nest when `UPSTREAM_API_URL` is set. The in-app mock ignores the header.

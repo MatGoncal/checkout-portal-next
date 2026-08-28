@@ -75,6 +75,8 @@ See `Docs/specs/fase-6-bff-credenciais.md` and `Docs/runbooks/testes.md`.
 | OpenAPI 3.1 | `Docs/specs/openapi.yaml` |
 | Error codes | `Docs/specs/error-codes.md` |
 | Fase 2–5 specs | `Docs/specs/fase-2-*.md` … `fase-5-*.md` |
+| Fase 6 BFF credentials | `Docs/specs/fase-6-bff-credenciais.md` |
+| Fase 7 Idempotency-Key | `Docs/specs/fase-7-idempotency-key.md` |
 | How to test | `Docs/runbooks/testes.md` |
 | Domain glossary | `~/.cursor/skills/payments-domain/SKILL.md` |
 | New query hook skill | `.cursor/skills/next-query-hook/SKILL.md` |
@@ -103,6 +105,7 @@ See `Docs/specs/fase-6-bff-credenciais.md` and `Docs/runbooks/testes.md`.
 | 4 | Webhook simulator | `Docs/specs/fase-4-webhook-simulator.md` |
 | 5 | Playwright + Vercel | `Docs/specs/fase-5-playwright-vercel.md` |
 | 6 | BFF + credenciais server-side | `Docs/specs/fase-6-bff-credenciais.md` |
+| 7 | Idempotency-Key on create + BFF forward | `Docs/specs/fase-7-idempotency-key.md` |
 
 ## Do NOT
 

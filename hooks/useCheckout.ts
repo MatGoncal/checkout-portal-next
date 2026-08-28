@@ -1,8 +1,13 @@
 'use client';
 
+import { useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiRequest, appRequest } from '@/lib/api';
+import {
+  clearMemoryIdempotencyKey,
+  paymentIdempotencyKey,
+} from '@/lib/idempotencyKey';
 import type {
   CreatePaymentPayload,
   CreateSplitsPayload,
@@ -16,12 +21,22 @@ const PAYMENT_QUERY_KEY = 'payment';
 const SPLITS_QUERY_KEY = 'splits';
 
 export function useCreatePayment() {
+  const createKeyMemory = useRef<string | null>(null);
+
   return useMutation({
-    mutationFn: (payload: CreatePaymentPayload) =>
-      apiRequest<Payment>('/payments', {
+    mutationFn: (payload: CreatePaymentPayload) => {
+      const key = paymentIdempotencyKey(payload.external_id, createKeyMemory);
+      return apiRequest<Payment>('/payments', {
         method: 'POST',
         body: JSON.stringify(payload),
-      }),
+        headers: { 'Idempotency-Key': key },
+      });
+    },
+    onSuccess: (_data, payload) => {
+      if (!payload.external_id?.trim()) {
+        clearMemoryIdempotencyKey(createKeyMemory);
+      }
+    },
   });
 }
 
